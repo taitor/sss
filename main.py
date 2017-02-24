@@ -42,9 +42,8 @@ def main():
 
   path, ext = os.path.splitext(input_file_name)
   names = [path + str(i) + ext for i in range(k)] + [path + 'all' + ext]
-  print(names)
-  for output_file_name in names:
-    write(output_file_name, fs, parts[i])
+  for output_file_name, part in zip(names, parts):
+    write(output_file_name, fs, part)
 
 def get_args():
   import argparse
