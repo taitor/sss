@@ -8,6 +8,8 @@ from scipy.io.wavfile import read, write
 def main():
   args = get_args()
   input_file_name = args['file']
+  k = int(args['k'])
+  method = args['method']
 
   fs, data = read(input_file_name)
   data = data[:int(data.shape[0] / 12)]
@@ -27,35 +29,30 @@ def main():
   scale = np.max(power)
   power /= scale
 
-  k = 1000
-  u, v = NMF(power, k, 1)
+  parts = []
+  if method == 'NMF':
+    u, v = NMF(power, k)
+    for i in range(k):
+      power = (u[:, i:i + 1] @ v[i:i + 1, :]) * scale
+      w = (np.sqrt(power)) * angle
+      parts.append(ISTFT(w, win, step))
+    power = (u @ v) * scale
+    w = (np.sqrt(power)) * angle
+    parts.append(ISTFT(w, win, step))
 
-#  for i in range(k):
-#    power = (u[:, i:i + 1] @ v[i:i + 1, :]) * scale
-#    w = (np.sqrt(power)) * angle
-#
-#    data2 = ISTFT(w, win, step)
-#    
-#    path, ext = os.path.splitext(input_file_name)
-#    output_file_name = path + str(i) + ext
-#    write(output_file_name, fs, data2)
-
-  power = (u @ v) * scale
-  w = (np.sqrt(power)) * angle
-  data2 = ISTFT(w, win, step)
   path, ext = os.path.splitext(input_file_name)
-  output_file_name = path + 'full' + ext
-  write(output_file_name, fs, data2)
+  names = [path + str(i) + ext for i in range(k)] + [path + 'all' + ext]
+  print(names)
+  for output_file_name in names:
+    write(output_file_name, fs, parts[i])
 
 def get_args():
   import argparse
   parser = argparse.ArgumentParser()
-  parser.add_argument('-f', '--file', required=True)
+  parser.add_argument('-f', '--file', required=True, help='input wav file')
+  parser.add_argument('-k', '--k', required=True, help='#(cluster)')
+  parser.add_argument('-m', '--method', required=True, help='from (NMF, K-means, )')
   return vars(parser.parse_args())
-
-def read_wav(wav_name):
-  from scipy.io.wavfile import read
-
 
 def STFT(x, win, step):
   l = len(x)
